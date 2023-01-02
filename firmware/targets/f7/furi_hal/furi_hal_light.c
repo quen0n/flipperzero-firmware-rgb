@@ -3,6 +3,7 @@
 #include <furi_hal_light.h>
 #include <lp5562.h>
 #include <stdint.h>
+#include <WS2812B.h>
 
 #define LED_CURRENT_RED 50
 #define LED_CURRENT_GREEN 50
@@ -42,9 +43,7 @@ void furi_hal_light_set(Light light, uint8_t value) {
         lp5562_set_channel_value(&furi_hal_i2c_handle_power, LP5562ChannelBlue, value);
     }
     if(light & LightBacklight) {
-        uint8_t prev = lp5562_get_channel_value(&furi_hal_i2c_handle_power, LP5562ChannelWhite);
-        lp5562_execute_ramp(
-            &furi_hal_i2c_handle_power, LP5562Engine1, LP5562ChannelWhite, prev, value, 100);
+        rgb_backlight_update(value);
     }
     furi_hal_i2c_release(&furi_hal_i2c_handle_power);
 }

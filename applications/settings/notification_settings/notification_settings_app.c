@@ -3,6 +3,7 @@
 #include <gui/modules/variable_item_list.h>
 #include <gui/view_dispatcher.h>
 #include <lib/toolbox/value_index.h>
+#include <lib/drivers/WS2812B.h>
 
 #define MAX_NOTIFICATION_SETTINGS 4
 
@@ -46,16 +47,22 @@ const char* const volume_text[VOLUME_COUNT] = {
 };
 const float volume_value[VOLUME_COUNT] = {0.0f, 0.25f, 0.5f, 0.75f, 1.0f};
 
-#define DELAY_COUNT 6
+#define DELAY_COUNT 11
 const char* const delay_text[DELAY_COUNT] = {
     "1s",
     "5s",
+    "10s",
     "15s",
     "30s",
     "60s",
+    "90s",
     "120s",
+    "5min",
+    "10min",
+    "30min",
 };
-const uint32_t delay_value[DELAY_COUNT] = {1000, 5000, 15000, 30000, 60000, 120000};
+const uint32_t delay_value[DELAY_COUNT] =
+    {1000, 5000, 10000, 15000, 30000, 60000, 90000, 120000, 300000, 600000, 1800000};
 
 #define VIBRO_COUNT 2
 const char* const vibro_text[VIBRO_COUNT] = {
@@ -67,9 +74,10 @@ const bool vibro_value[VIBRO_COUNT] = {false, true};
 static void backlight_changed(VariableItem* item) {
     NotificationAppSettings* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
-
+    rgb_backlight_set_brightness(app->notification->settings.display_brightness);
     variable_item_set_current_value_text(item, backlight_text[index]);
     app->notification->settings.display_brightness = backlight_value[index];
+    furi_delay_ms(1);
     notification_message(app->notification, &sequence_display_backlight_on);
 }
 
@@ -119,8 +127,18 @@ static void vibro_changed(VariableItem* item) {
     notification_message(app->notification, &sequence_single_vibro);
 }
 
+static void color_changed(VariableItem* item) {
+    NotificationAppSettings* app = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+    rgb_backlight_set_color(index);
+    furi_delay_ms(1);
+    variable_item_set_current_value_text(item, rgb_backlight_get_color_text(index));
+    notification_message(app->notification, &sequence_display_backlight_on);
+}
+
 static uint32_t notification_app_settings_exit(void* context) {
     UNUSED(context);
+    rgb_backlight_save_settings();
     return VIEW_NONE;
 }
 
@@ -142,6 +160,12 @@ static NotificationAppSettings* alloc_settings() {
         app->notification->settings.display_brightness, backlight_value, BACKLIGHT_COUNT);
     variable_item_set_current_value_index(item, value_index);
     variable_item_set_current_value_text(item, backlight_text[value_index]);
+
+    item = variable_item_list_add(
+        app->variable_item_list, "LCD Color", rgb_backlight_get_color_count(), color_changed, app);
+    value_index = rgb_backlight_get_settings()->display_color_index;
+    variable_item_set_current_value_index(item, value_index);
+    variable_item_set_current_value_text(item, rgb_backlight_get_color_text(value_index));
 
     item = variable_item_list_add(
         app->variable_item_list, "Backlight Time", DELAY_COUNT, screen_changed, app);
@@ -194,6 +218,7 @@ int32_t notification_settings_app(void* p) {
     NotificationAppSettings* app = alloc_settings();
     view_dispatcher_run(app->view_dispatcher);
     notification_message_save_settings(app->notification);
+
     free_settings(app);
     return 0;
 }
