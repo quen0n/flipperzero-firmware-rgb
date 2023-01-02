@@ -107,17 +107,24 @@ fbtenv_get_kernel_type()
 {
     SYS_TYPE="$(uname -s)";
     ARCH_TYPE="$(uname -m)";
-    if [ "$ARCH_TYPE" != "x86_64" ] && [ "$SYS_TYPE" != "Darwin" ]; then
-        echo "We only provide toolchain for x86_64 CPUs, sorry..";
-        return 1;
-    fi
+
     if [ "$SYS_TYPE" = "Darwin" ]; then
         fbtenv_check_rosetta || return 1;
         TOOLCHAIN_ARCH_DIR="$FBT_TOOLCHAIN_PATH/toolchain/x86_64-darwin";
-        TOOLCHAIN_URL="https://update.flipperzero.one/builds/toolchain/gcc-arm-none-eabi-10.3-x86_64-darwin-flipper-$FBT_TOOLCHAIN_VERSION.tar.gz";
+        if [ -z "${FBT_TOOLS_CUSTOM_LINK:-}" ]; then
+            TOOLCHAIN_URL="https://update.flipperzero.one/builds/toolchain/gcc-arm-none-eabi-10.3-x86_64-darwin-flipper-$FBT_TOOLCHAIN_VERSION.tar.gz";
+        else
+            echo "info: custom toolchain link is used";
+            TOOLCHAIN_URL=$FBT_TOOLS_CUSTOM_LINK;
+        fi
     elif [ "$SYS_TYPE" = "Linux" ]; then
         TOOLCHAIN_ARCH_DIR="$FBT_TOOLCHAIN_PATH/toolchain/x86_64-linux";
-        TOOLCHAIN_URL="https://update.flipperzero.one/builds/toolchain/gcc-arm-none-eabi-10.3-x86_64-linux-flipper-$FBT_TOOLCHAIN_VERSION.tar.gz";
+        if [ -z "${FBT_TOOLS_CUSTOM_LINK:-}" ]; then
+            TOOLCHAIN_URL="https://update.flipperzero.one/builds/toolchain/gcc-arm-none-eabi-10.3-x86_64-linux-flipper-$FBT_TOOLCHAIN_VERSION.tar.gz";
+        else
+            echo "info: custom toolchain link is used";
+            TOOLCHAIN_URL=$FBT_TOOLS_CUSTOM_LINK;
+        fi
     elif echo "$SYS_TYPE" | grep -q "MINGW"; then
         echo "In MinGW shell use \"[u]fbt.cmd\" instead of \"[u]fbt\"";
         return 1;
@@ -279,9 +286,9 @@ fbtenv_main()
     fbtenv_check_script_path || return 1;
     fbtenv_check_download_toolchain || return 1;
     fbtenv_set_shell_prompt;
-    PATH="$TOOLCHAIN_ARCH_DIR/python/bin:$PATH";
+    #PATH="$TOOLCHAIN_ARCH_DIR/python/bin:$PATH";
     PATH="$TOOLCHAIN_ARCH_DIR/bin:$PATH";
-    PATH="$TOOLCHAIN_ARCH_DIR/protobuf/bin:$PATH";
+    #PATH="$TOOLCHAIN_ARCH_DIR/protobuf/bin:$PATH";
     PATH="$TOOLCHAIN_ARCH_DIR/openocd/bin:$PATH";
     
     SAVED_PYTHONNOUSERSITE="${PYTHONNOUSERSITE:-""}";
