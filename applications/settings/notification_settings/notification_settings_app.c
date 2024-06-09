@@ -3,6 +3,7 @@
 #include <gui/modules/variable_item_list.h>
 #include <gui/view_dispatcher.h>
 #include <lib/toolbox/value_index.h>
+#include <applications/settings/notification_settings/rgb_backlight.h>
 
 #define MAX_NOTIFICATION_SETTINGS 4
 
@@ -48,20 +49,14 @@ const int32_t contrast_value[CONTRAST_COUNT] = {
     5,
 };
 
-#define BACKLIGHT_COUNT 5
+#define BACKLIGHT_COUNT 21
 const char* const backlight_text[BACKLIGHT_COUNT] = {
-    "0%",
-    "25%",
-    "50%",
-    "75%",
-    "100%",
+    "0%",  "5%",  "10%", "15%", "20%", "25%", "30%", "35%", "40%", "45%",  "50%",
+    "55%", "60%", "65%", "70%", "75%", "80%", "85%", "90%", "95%", "100%",
 };
 const float backlight_value[BACKLIGHT_COUNT] = {
-    0.0f,
-    0.25f,
-    0.5f,
-    0.75f,
-    1.0f,
+    0.00f, 0.05f, 0.10f, 0.15f, 0.20f, 0.25f, 0.30f, 0.35f, 0.40f, 0.45f, 0.50f,
+    0.55f, 0.60f, 0.65f, 0.70f, 0.75f, 0.80f, 0.85f, 0.90f, 0.95f, 1.00f,
 };
 
 #define VOLUME_COUNT 5
@@ -156,6 +151,14 @@ static void vibro_changed(VariableItem* item) {
     notification_message(app->notification, &sequence_single_vibro);
 }
 
+static void color_changed(VariableItem* item) {
+    NotificationAppSettings* app = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+    rgb_backlight_set_color(index);
+    variable_item_set_current_value_text(item, rgb_backlight_get_color_text(index));
+    notification_message(app->notification, &sequence_display_backlight_on);
+}
+
 static uint32_t notification_app_settings_exit(void* context) {
     UNUSED(context);
     return VIEW_NONE;
@@ -172,6 +175,12 @@ static NotificationAppSettings* alloc_settings(void) {
 
     VariableItem* item;
     uint8_t value_index;
+
+    item = variable_item_list_add(
+        app->variable_item_list, "LCD Color", rgb_backlight_get_color_count(), color_changed, app);
+    value_index = rgb_backlight_get_settings()->display_color_index;
+    variable_item_set_current_value_index(item, value_index);
+    variable_item_set_current_value_text(item, rgb_backlight_get_color_text(value_index));
 
     item = variable_item_list_add(
         app->variable_item_list, "LCD Contrast", CONTRAST_COUNT, contrast_changed, app);
